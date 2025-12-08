@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { DrizzleModule } from './infra/database/drizzle.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    // Carrega o .env globalmente
+    ConfigModule.forRoot({ isGlobal: true }),
+    // Carrega banco de dados
+    DrizzleModule,
+  ],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
