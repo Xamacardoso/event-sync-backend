@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: event-sync-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: event-sync
+      POSTGRES_PASSWORD: event-sync
+      POSTGRES_DB: event-sync-db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
