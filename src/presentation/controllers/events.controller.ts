@@ -17,7 +17,7 @@ export class EventsController {
     @ApiResponse({ status: 201, description: 'Event created successfully' })
     create(@CurrentUser() user, @Body() dto: CreateEventDto) {
         // Passa o ID do usuário autenticado para vincular o evento a ele
-        return this.eventsService.create(user.id, dto);
+        return this.eventsService.create(user.userId, dto);
     }
 
     @Get()
@@ -44,6 +44,6 @@ export class EventsController {
         @CurrentUser() user,
         @Body() dto: UpdateEventDto,
     ) {
-        return this.eventsService.update(id, user.id, dto);
+        return this.eventsService.update(id, user.userId, dto);
     }
 }

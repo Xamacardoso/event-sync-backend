@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DrizzleModule } from './infra/database/drizzle.module';
 import { AuthModule } from './infra/auth/auth.module';
 import { EventsModule } from './infra/events/events.module';
+import { RegistrationsModule } from './infra/registrations/registration.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { EventsModule } from './infra/events/events.module';
     DrizzleModule,
     AuthModule,
     EventsModule,
+    RegistrationsModule,
   ],
   controllers: [],
   providers: [],
