@@ -15,8 +15,13 @@ export class EventsService {
   async create(userId: string, dto: CreateEventDto) {
     const [event] = await this.db.insert(schema.events).values({
       ...dto,
+
+      // TODO: automatizar conversão
       startDate: new Date(dto.startDate),
       endDate: new Date(dto.endDate),
+      registrationStart: dto.registrationStart ? new Date(dto.registrationStart) : null,
+      registrationEnd: dto.registrationEnd ? new Date(dto.registrationEnd) : null,
+      
       organizerId: userId, // Vincula quem criou
       // status default é 'draft' se não vier no dto
     }).returning();
@@ -56,8 +61,12 @@ export class EventsService {
     }
 
     const updateData: any = { ...dto };
+
+    // TODO: Validar datas (ex: endDate > startDate) e automatizar conversão
     if (dto.startDate) updateData.startDate = new Date(dto.startDate);
     if (dto.endDate) updateData.endDate = new Date(dto.endDate)
+    if (dto.registrationStart) updateData.registrationStart = new Date(dto.registrationStart);
+    if (dto.registrationEnd) updateData.registrationEnd = new Date(dto.registrationEnd);
 
     const [updatedEvent] = await this.db.update(schema.events)
       .set(updateData)

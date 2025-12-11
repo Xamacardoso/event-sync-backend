@@ -7,7 +7,7 @@ import * as schema from './schema';
 export const DRIZZLE = 'DRIZZLE_CONNECTION';
 
 export const DrizzleProvider: Provider = {
-  provide: DRIZZLE,
+  provide: DRIZZLE, // Token de injeção
   useFactory: (configService: ConfigService) => {
     const connectionString = configService.get<string>('DATABASE_URL');
     

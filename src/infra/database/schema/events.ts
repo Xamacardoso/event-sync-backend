@@ -17,6 +17,10 @@ export const events = pgTable('events', {
   price: real('price').default(0.0),
   type: eventTypeEnum('type').default('free'),
   
+  requiresApproval: boolean('requires_approval').default(false),
+  registrationStart: timestamp('registration_start'),
+  registrationEnd: timestamp('registration_end'),
+
   maxAttendees: integer('max_attendees'),
   allowedCheckins: integer('allowed_checkins').default(1),
   
