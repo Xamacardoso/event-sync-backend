@@ -8,7 +8,7 @@ import { eq, and, sql } from 'drizzle-orm';
 export class RegistrationsService {
   constructor(
     @Inject(DRIZZLE) private db: PostgresJsDatabase<typeof schema>,
-  ) {}
+  ) { }
 
   // Participante se inscreve em evento
   async register(userId: string, eventId: string) {
@@ -54,19 +54,37 @@ export class RegistrationsService {
     // Verifica se o evento pertence ao usuário
     // TODO: Fazer funcao para facilitar a legibilidade dessaa query
     const event = await this.db.query.events.findFirst({
-        where: eq(schema.events.id, eventId)
+      where: eq(schema.events.id, eventId)
     });
-    
+
     if (!event) throw new NotFoundException('Event not found');
     if (event.organizerId !== userId) throw new ForbiddenException('Not your event');
 
     // Busca inscrições com dados do usuário
-    return this.db.query.registrations.findMany({
+    // Busca inscrições com dados do usuário
+    const registrations = await this.db.query.registrations.findMany({
       where: eq(schema.registrations.eventId, eventId),
       with: {
         user: { // Graças ao relations.ts agora da para buscar o usuário relacionado
-            columns: { id: true, name: true, email: true, photoUrl: true }
-        } 
+          columns: { id: true, name: true, email: true, photoUrl: true }
+        },
+        checkins: true,
+      }
+    });
+
+    return registrations.map(reg => {
+      // Pega o check-in mais recente, se houver
+      const lastCheckin = reg.checkins && reg.checkins.length > 0
+        ? reg.checkins.sort((a, b) => {
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return timeB - timeA;
+        })[0]
+        : null;
+
+      return {
+        ...reg,
+        checkedInAt: lastCheckin?.timestamp || null,
       }
     });
   }
@@ -77,31 +95,31 @@ export class RegistrationsService {
       with: {
         event: true,
       },
-      orderBy: (registrations, { desc}) => [desc(registrations.registrationDate)] ,  
+      orderBy: (registrations, { desc }) => [desc(registrations.registrationDate)],
     });
-  } 
+  }
 
   // Organizador muda status (Aprovar/Recusar)
   async updateStatus(userId: string, registrationId: string, status: 'approved' | 'rejected') {
     // Buscar a inscrição e o evento associado para verificar permissão
     const registration = await this.db.query.registrations.findFirst({
-        where: eq(schema.registrations.id, registrationId),
-        with: {
-            event: true
-        }
+      where: eq(schema.registrations.id, registrationId),
+      with: {
+        event: true
+      }
     });
 
     if (!registration) throw new NotFoundException('Registration not found');
-    
+
     // Verifica permissão (apenas organizador do evento)
     if (registration.event.organizerId !== userId) {
-        throw new ForbiddenException('You do not have permission to manage this registration');
+      throw new ForbiddenException('You do not have permission to manage this registration');
     }
 
     const [updated] = await this.db.update(schema.registrations)
-        .set({ status })
-        .where(eq(schema.registrations.id, registrationId))
-        .returning();
+      .set({ status })
+      .where(eq(schema.registrations.id, registrationId))
+      .returning();
 
     return updated;
   }
@@ -175,20 +193,20 @@ export class RegistrationsService {
       // Cria registro na tabela de logs 'checkins'
       await tx.insert(schema.checkins).values({
         registrationId: registration.id,
-        method: method, 
+        method: method,
       });
 
       // Incrementa contador na inscrição e atualiza status se necessário
       await tx.update(schema.registrations)
-        .set({ 
+        .set({
           checkinsCount: registration.checkinsCount! + 1,
           status: 'checked_in' // Opcional: mudar status para indicar presença
         })
         .where(eq(schema.registrations.id, registrationId));
     });
 
-    return { 
-      message: 'Check-in made successfully', 
+    return {
+      message: 'Check-in made successfully',
       participant: registration.userId // Retorna ID para o front mostrar quem entrou
     };
   }

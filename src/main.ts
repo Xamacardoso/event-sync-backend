@@ -9,7 +9,7 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter()
   );
-  
+
   // Ativa a validação de dados com Zod em todos os endpoints
   await app.useGlobalPipes(new ZodValidationPipe());
 
