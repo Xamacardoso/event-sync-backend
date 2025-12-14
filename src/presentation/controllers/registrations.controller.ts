@@ -19,6 +19,14 @@ export class RegistrationsController {
     return this.registrationsService.register(user.userId, eventId);
   }
 
+  @Patch('registrations/:id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel current user registration from an event' })
+  cancelRegistration(@Param('id') registrationId: string, @CurrentUser() user: any) {
+    return this.registrationsService.cancelRegistration(user.userId, registrationId);
+  }
+
   @Get('events/:id/registrations')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

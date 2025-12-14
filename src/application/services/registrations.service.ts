@@ -49,6 +49,29 @@ export class RegistrationsService {
     return { message: 'Registration successful', registration };
   }
 
+  // Participante cancela sua inscrição
+  async cancelRegistration(userId: string, registrationId: string) {
+    const registration = await this.db.query.registrations.findFirst({
+      where: and(
+        eq(schema.registrations.id, registrationId),
+        eq(schema.registrations.userId, userId)
+      )
+    });
+
+    if (!registration) throw new NotFoundException('Registration not found');
+
+    if (registration.status === 'checked_in') {
+      throw new BadRequestException('Cannot cancel after check-in');
+    }
+
+    const [updated] = await this.db.update(schema.registrations)
+      .set({ status: 'canceled' })
+      .where(eq(schema.registrations.id, registrationId))
+      .returning();
+
+    return { message: 'Registration canceled', registration: updated };
+  }
+
   // Organizador lista inscrições de um evento seu
   async findAllByEvent(userId: string, eventId: string) {
     // Verifica se o evento pertence ao usuário
