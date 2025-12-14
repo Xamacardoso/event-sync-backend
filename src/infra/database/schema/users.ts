@@ -8,7 +8,7 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   city: text('city'),
   photoUrl: text('photo_url'),
-  
+
   visibilityParticipation: boolean('visibility_participation').default(true),
   organizerRating: real('organizer_rating').default(0),
   

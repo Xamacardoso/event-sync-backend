@@ -4,6 +4,7 @@ import { DrizzleModule } from './infra/database/drizzle.module';
 import { AuthModule } from './infra/auth/auth.module';
 import { EventsModule } from './infra/events/events.module';
 import { RegistrationsModule } from './infra/registrations/registration.module';
+import { UsersModule } from './infra/users/users.module';
 
 @Module({
   imports: [
@@ -14,8 +15,9 @@ import { RegistrationsModule } from './infra/registrations/registration.module';
     AuthModule,
     EventsModule,
     RegistrationsModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }

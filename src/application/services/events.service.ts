@@ -97,4 +97,22 @@ export class EventsService {
       orderBy: [desc(schema.events.createdAt)],
     });
   }
+
+  // Cancelar evento
+  async cancel(id: string, userId: string) {
+    // Verifica se evento existe
+    const event = await this.findOne(id);
+
+    // Verifica se o usuário é o dono
+    if (event.organizerId !== userId) {
+      throw new ForbiddenException('You do not have permission to cancel this event');
+    }
+
+    const [canceledEvent] = await this.db.update(schema.events)
+      .set({ status: 'canceled' })
+      .where(eq(schema.events.id, id))
+      .returning();
+
+    return canceledEvent;
+  }
 }
