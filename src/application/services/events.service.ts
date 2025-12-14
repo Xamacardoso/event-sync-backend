@@ -75,4 +75,26 @@ export class EventsService {
 
     return updatedEvent;
   }
+
+  // Listar Eventos do Usuário (Apenas o dono pode ver)
+  async findMyEvents(userId: string) {
+    // Verifica se o usuário existe
+    const user = await this.db.query.users.findFirst({
+      where: eq(schema.users.id, userId),
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verifica se o usuário é o dono
+    if (user.id !== userId) {
+      throw new ForbiddenException('You do not have permission to view this user\'s events');
+    }
+
+    return this.db.query.events.findMany({
+      where: eq(schema.events.organizerId, userId),
+      orderBy: [desc(schema.events.createdAt)],
+    });
+  }
 }

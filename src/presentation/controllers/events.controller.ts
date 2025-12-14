@@ -46,4 +46,14 @@ export class EventsController {
     ) {
         return this.eventsService.update(id, user.userId, dto);
     }
+
+    @Get('me')
+    @UseGuards(JwtAuthGuard) // Endpoint protegido
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'List all events created by the current user (Organizer only)' })
+    @ApiResponse({ status: 200, description: 'List of events retrieved successfully' })
+    @ApiResponse({ status: 404, description: 'User not found' })
+    findMyEvents(@CurrentUser() user) {
+        return this.eventsService.findMyEvents(user.userId);
+    }
 }
