@@ -28,3 +28,16 @@ export class CreateEventDto extends createZodDto(createEventSchema) {}
 
 // Schema para atualização (Partial torna tudo opcional)
 export class UpdateEventDto extends createZodDto(createEventSchema.partial()) {}
+
+const eventFilterSchema = z.object({
+  title: z.string().optional().describe('Filtrar por título (busca parcial)'),
+  type: z.enum(['free', 'paid']).optional().describe('Filtrar por tipo'),
+
+  status: z.enum(['draft', 'published', 'canceled', 'finished']).optional().describe('Filtrar por status'),
+
+  // Datas recebidas como string ISO
+  startDate: z.string().datetime().optional().describe('Eventos a partir desta data'),
+  endDate: z.string().datetime().optional().describe('Eventos até esta data'),
+});
+
+export class EventFilterDto extends createZodDto(eventFilterSchema) {}

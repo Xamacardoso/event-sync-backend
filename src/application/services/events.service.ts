@@ -2,14 +2,14 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { DRIZZLE } from '../../infra/database/drizzle.provider';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../../infra/database/schema';
-import { eq, desc } from 'drizzle-orm';
-import { CreateEventDto, UpdateEventDto } from '../../presentation/dtos/event.dto';
+import { eq, desc, and, lte, gte, SQL } from 'drizzle-orm';
+import { CreateEventDto, EventFilterDto, UpdateEventDto } from '../../presentation/dtos/event.dto';
 
 @Injectable()
 export class EventsService {
   constructor(
     @Inject(DRIZZLE) private db: PostgresJsDatabase<typeof schema>,
-  ) {}
+  ) { }
 
   // Criar Evento
   async create(userId: string, dto: CreateEventDto) {
@@ -21,19 +21,48 @@ export class EventsService {
       endDate: new Date(dto.endDate),
       registrationStart: dto.registrationStart ? new Date(dto.registrationStart) : null,
       registrationEnd: dto.registrationEnd ? new Date(dto.registrationEnd) : null,
-      
+
       organizerId: userId, // Vincula quem criou
       // status default é 'draft' se não vier no dto
     }).returning();
-    
+
     return event;
   }
 
   // Listar Eventos (Público)
-  async findAll() {
+  async findAll(filters: EventFilterDto) {
+    const conditions: SQL[] = [];
+
+    if (filters.title) {
+      conditions.push(eq(schema.events.title, filters.title));
+    }
+
+    if (filters.type) {
+      conditions.push(eq(schema.events.type, filters.type));
+    }
+
+    if (filters.status) {
+      conditions.push(eq(schema.events.status, filters.status));
+    }
+
+    if (filters.startDate) {
+      conditions.push(gte(schema.events.startDate, new Date(filters.startDate)));
+    }
+
+    if (filters.endDate) {
+      conditions.push(lte(schema.events.endDate, new Date(filters.endDate)));
+    }
+
     // Retorna todos, ordenados por data de criação (mais novos primeiro)
     return this.db.query.events.findMany({
+      // Se houver condições, usa o AND, senão busca tudo
+      where: conditions.length > 0 ? and(...conditions) : undefined,
       orderBy: [desc(schema.events.createdAt)],
+      with: {
+        organizer: { // Mostrar nome do organizador no card do evento
+          columns: { name: true, organizerRating: true }
+        }
+      }
     });
   }
 

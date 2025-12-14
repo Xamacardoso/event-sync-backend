@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { EventsService } from "src/application/services/events.service";
 import { CurrentUser } from "src/infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "src/infra/auth/jwt-auth.guard";
-import { CreateEventDto, UpdateEventDto } from "../dtos/event.dto";
+import { CreateEventDto, UpdateEventDto, EventFilterDto } from "../dtos/event.dto";
 
 @ApiTags('Events')
 @Controller('events')
@@ -23,8 +23,8 @@ export class EventsController {
     @Get()
     @ApiOperation({ summary: 'List all events (Public)' })
     @ApiResponse({ status: 200, description: 'List of events retrieved successfully' })
-    findAll() {
-        return this.eventsService.findAll();
+    findAll(@Query() filters: EventFilterDto) {
+        return this.eventsService.findAll(filters);
     }
 
     @Get(':id')
