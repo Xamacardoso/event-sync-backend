@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { EventsService } from "src/application/services/events.service";
 import { CurrentUser } from "src/infra/auth/current-user.decorator";
@@ -45,6 +45,14 @@ export class EventsController {
         @Body() dto: UpdateEventDto,
     ) {
         return this.eventsService.update(id, user.userId, dto);
+    }
+
+    @Patch(':id')
+    @UseGuards(JwtAuthGuard) // Endpoint protegido
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Cancel an event (Organizer only)' })
+    cancel(@Param('id') id: string, @CurrentUser() user) {
+        return this.eventsService.cancel(id, user.userId);
     }
 
     @Get('me')

@@ -81,6 +81,7 @@ export class EventsService {
     // Verifica se o usuário existe
     const user = await this.db.query.users.findFirst({
       where: eq(schema.users.id, userId),
+      orderBy: [desc(schema.users.createdAt)],
     });
 
     if (!user) {
