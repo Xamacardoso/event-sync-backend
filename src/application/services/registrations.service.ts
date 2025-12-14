@@ -71,6 +71,16 @@ export class RegistrationsService {
     });
   }
 
+  async findMyRegistrations(userId: string) {
+    return this.db.query.registrations.findMany({
+      where: eq(schema.registrations.userId, userId),
+      with: {
+        event: true,
+      },
+      orderBy: (registrations, { desc}) => [desc(registrations.registrationDate)] ,  
+    });
+  } 
+
   // Organizador muda status (Aprovar/Recusar)
   async updateStatus(userId: string, registrationId: string, status: 'approved' | 'rejected') {
     // Buscar a inscrição e o evento associado para verificar permissão
@@ -94,5 +104,92 @@ export class RegistrationsService {
         .returning();
 
     return updated;
+  }
+
+  // Obter cartao virtual do participatne
+  async getTvCard(userId: string, registrationId: string) {
+    const registration = await this.db.query.registrations.findFirst({
+      where: and(
+        eq(schema.registrations.id, registrationId),
+        eq(schema.registrations.userId, userId)
+      ),
+      with: {
+        event: true,
+        user: true, // Para pegar o nome do participante
+      }
+    });
+
+    if (!registration) {
+      throw new NotFoundException('Registration not found.');
+    }
+
+    // TODO: Transformar em enum
+    if (registration.status !== 'approved' && registration.status !== 'confirmed') {
+      throw new BadRequestException('You must have an approved or confirmed registration to access the virtual card.');
+    }
+
+    // Retorna dados formatados para o Cartão
+    return {
+      registrationId: registration.id,
+      participantName: registration.user.name,
+      eventName: registration.event.title,
+      eventDate: registration.event.startDate,
+      local: registration.event.localAddress || 'Online',
+      status: registration.status,
+      qrCodeData: registration.id, // O QR Code será apenas o ID da inscrição
+    };
+  }
+
+  // Realizar check-in. TODO: Transformar em enum
+  async checkIn(organizerId: string, registrationId: string, method: 'manual' | 'qr') {
+    // Buscar inscrição e evento
+    const registration = await this.db.query.registrations.findFirst({
+      where: eq(schema.registrations.id, registrationId),
+      with: {
+        event: true,
+      }
+    });
+
+    if (!registration) {
+      throw new NotFoundException('Registration not found.');
+    }
+
+    // 1. Validar se o usuário é o organizador do evento
+    if (registration.event.organizerId !== organizerId) {
+      throw new ForbiddenException('You do not have permission to perform check-in for this event.');
+    }
+
+    // 2. Validar status da inscrição
+    if (registration.status !== 'approved' && registration.status !== 'confirmed') {
+      throw new BadRequestException(`Participant not approved (Status: ${registration.status}).`);
+    }
+
+    // 3. Validar limite de check-ins
+    // (Padrão é 1, mas o evento pode permitir mais, ex: credenciamento + brindes)
+    if (registration.checkinsCount! >= (registration.event.allowedCheckins || 1)) {
+      throw new ConflictException('Participant already checked in.');
+    }
+
+    // 4. Registrar Check-in (Transação simples: Insert no histórico + Update no contador)
+    await this.db.transaction(async (tx) => {
+      // Cria registro na tabela de logs 'checkins'
+      await tx.insert(schema.checkins).values({
+        registrationId: registration.id,
+        method: method, 
+      });
+
+      // Incrementa contador na inscrição e atualiza status se necessário
+      await tx.update(schema.registrations)
+        .set({ 
+          checkinsCount: registration.checkinsCount! + 1,
+          status: 'checked_in' // Opcional: mudar status para indicar presença
+        })
+        .where(eq(schema.registrations.id, registrationId));
+    });
+
+    return { 
+      message: 'Check-in made successfully', 
+      participant: registration.userId // Retorna ID para o front mostrar quem entrou
+    };
   }
 }
