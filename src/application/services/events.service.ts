@@ -5,6 +5,8 @@ import * as schema from '../../infra/database/schema';
 import { eq, desc, and, lte, gte, SQL, ilike } from 'drizzle-orm';
 import { CreateEventDto, UpdateEventDto } from '../../presentation/dtos/event.dto';
 import { EventFilterDto } from '../../presentation/dtos/event-filter.dto';
+import { EventContext } from '../../domain/events/event-context';
+import { EventStateFactory } from '../../domain/events/event-state.factory';
 
 @Injectable()
 export class EventsService {
@@ -12,7 +14,7 @@ export class EventsService {
     @Inject(DRIZZLE) private db: PostgresJsDatabase<typeof schema>,
   ) { }
 
-  // Criar Evento
+  // Criar Evento (Mantido igual)
   async create(userId: string, dto: CreateEventDto) {
     const [event] = await this.db.insert(schema.events).values({
       ...dto,
@@ -30,8 +32,12 @@ export class EventsService {
   async findAll(filters: EventFilterDto) {
     const conditions: SQL[] = [];
 
-    // Por padrão, buscar apenas eventos publicados
-    conditions.push(eq(schema.events.status, 'published'));
+    // Lógica correta de filtro de status
+    if (filters.status) {
+      conditions.push(eq(schema.events.status, filters.status));
+    } else {
+      conditions.push(eq(schema.events.status, 'published'));
+    }
 
     if (filters.title) {
       conditions.push(ilike(schema.events.title, `%${filters.title}%`));
@@ -73,21 +79,41 @@ export class EventsService {
     return event;
   }
 
-  // Atualizar Evento (Apenas o dono pode editar)
+  // Atualizar Evento (Com State Pattern)
   async update(id: string, userId: string, dto: UpdateEventDto) {
-    // Verifica se evento existe
     const event = await this.findOne(id);
 
-    // Verifica se o usuário é o dono
     if (event.organizerId !== userId) {
       throw new ForbiddenException('You do not have permission to edit this event');
     }
 
-    const updateData: any = { ...dto };
+    // Inicializa o Contexto e Estado
+    const context = new EventContext({ ...event }); // Copia para não mutar o original imediatamente
+    const state = EventStateFactory.create(event.status || 'draft', context);
+    context.setState(state);
 
-    // TODO: Validar datas (ex: endDate > startDate) e automatizar conversão
+    // 1. Aplica atualizações de dados (Valida se o estado atual permite edição)
+    context.update(dto);
+
+    // 2. Processa transição de status se solicitado
+    if (dto.status && dto.status !== event.status) {
+      if (dto.status === 'published') context.publish();
+      else if (dto.status === 'canceled') context.cancel();
+      else if (dto.status === 'finished') context.finish();
+      else if (dto.status === 'draft') {
+        context.revertToDraft();
+      }
+    }
+
+    // Prepara dados para salvar
+    const { status, ...currentData } = context.event;
+
+    // Converte datas para Date object se estiverem no DTO (context.update fez Object.assign nas strings)
+    // Precisamos garantir que o objeto passado para o Drizzle tenha Dates corretas
+    const updateData: any = { ...dto, status: context.getStatus() as any };
+
     if (dto.startDate) updateData.startDate = new Date(dto.startDate);
-    if (dto.endDate) updateData.endDate = new Date(dto.endDate)
+    if (dto.endDate) updateData.endDate = new Date(dto.endDate);
     if (dto.registrationStart) updateData.registrationStart = new Date(dto.registrationStart);
     if (dto.registrationEnd) updateData.registrationEnd = new Date(dto.registrationEnd);
 
@@ -99,21 +125,13 @@ export class EventsService {
     return updatedEvent;
   }
 
-  // Listar Eventos do Usuário (Apenas o dono pode ver)
   async findMyEvents(userId: string) {
-    // Verifica se o usuário existe
     const user = await this.db.query.users.findFirst({
       where: eq(schema.users.id, userId),
-      orderBy: [desc(schema.users.createdAt)],
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
-    }
-
-    // Verifica se o usuário é o dono
-    if (user.id !== userId) {
-      throw new ForbiddenException('You do not have permission to view this user\'s events');
     }
 
     return this.db.query.events.findMany({
@@ -122,18 +140,22 @@ export class EventsService {
     });
   }
 
-  // Cancelar evento
+  // Cancelar evento (Usando State Pattern)
   async cancel(id: string, userId: string) {
-    // Verifica se evento existe
     const event = await this.findOne(id);
 
-    // Verifica se o usuário é o dono
     if (event.organizerId !== userId) {
       throw new ForbiddenException('You do not have permission to cancel this event');
     }
 
+    const context = new EventContext({ ...event });
+    const state = EventStateFactory.create(event.status || 'draft', context);
+    context.setState(state);
+
+    context.cancel(); // Dispara transição e validações
+
     const [canceledEvent] = await this.db.update(schema.events)
-      .set({ status: 'canceled' })
+      .set({ status: context.getStatus() as any })
       .where(eq(schema.events.id, id))
       .returning();
 

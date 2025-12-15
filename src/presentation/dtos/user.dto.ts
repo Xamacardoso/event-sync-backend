@@ -14,8 +14,9 @@ export class UserDetailsDto extends createZodDto(userDetailsSchema) { }
 
 const updateUserSchema = z.object({
     name: z.string().min(3).max(100),
-    city: z.string().min(3).max(100),
-    photoUrl: z.string().url(),
-}).partial(); // Partial torna todos os campos opcionais
+    city: z.string().optional().nullable(),
+    photoUrl: z.string().optional().nullable(),
+    visibilityParticipation: z.boolean().optional(),
+}).partial();
 
 export class UpdateUserDto extends createZodDto(updateUserSchema) { }

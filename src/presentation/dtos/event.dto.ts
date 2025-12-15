@@ -21,7 +21,7 @@ const createEventSchema = z.object({
   maxAttendees: z.number().int().positive().optional().describe('Maximum number of attendees'),
   allowedCheckins: z.number().int().positive().default(1).describe('Number of allowed check-ins per attendee'),
 
-  status: z.enum(['draft', 'published']).optional(),
+  status: z.enum(['draft', 'published', 'canceled', 'finished']).optional(),
 });
 
 export class CreateEventDto extends createZodDto(createEventSchema) { }
