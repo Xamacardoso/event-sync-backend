@@ -16,6 +16,7 @@ export class UsersService {
             where: eq(schema.users.id, userId),
             columns: {
                 name: true,
+                email: true,
                 city: true,
                 photoUrl: true,
                 role: true,

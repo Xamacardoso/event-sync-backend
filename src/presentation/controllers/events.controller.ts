@@ -3,12 +3,13 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagg
 import { EventsService } from "src/application/services/events.service";
 import { CurrentUser } from "src/infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "src/infra/auth/jwt-auth.guard";
-import { CreateEventDto, UpdateEventDto, EventFilterDto } from "../dtos/event.dto";
+import { CreateEventDto, UpdateEventDto } from "../dtos/event.dto";
+import { EventFilterDto } from "../dtos/event-filter.dto";
 
 @ApiTags('Events')
 @Controller('events')
 export class EventsController {
-    constructor (private readonly eventsService: EventsService) {}
+    constructor(private readonly eventsService: EventsService) { }
 
     @Post()
     @UseGuards(JwtAuthGuard) // Endpoint protegido
@@ -25,6 +26,16 @@ export class EventsController {
     @ApiResponse({ status: 200, description: 'List of events retrieved successfully' })
     findAll(@Query() filters: EventFilterDto) {
         return this.eventsService.findAll(filters);
+    }
+
+    @Get('my-events')
+    @UseGuards(JwtAuthGuard) // Endpoint protegido
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'List all events created by the current user (Organizer only)' })
+    @ApiResponse({ status: 200, description: 'List of events retrieved successfully' })
+    @ApiResponse({ status: 404, description: 'User not found' })
+    findMyEvents(@CurrentUser() user) {
+        return this.eventsService.findMyEvents(user.userId);
     }
 
     @Get(':id')
@@ -47,21 +58,11 @@ export class EventsController {
         return this.eventsService.update(id, user.userId, dto);
     }
 
-    @Patch(':id')
+    @Patch(':id/cancel')
     @UseGuards(JwtAuthGuard) // Endpoint protegido
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Cancel an event (Organizer only)' })
     cancel(@Param('id') id: string, @CurrentUser() user) {
         return this.eventsService.cancel(id, user.userId);
-    }
-
-    @Get('me')
-    @UseGuards(JwtAuthGuard) // Endpoint protegido
-    @ApiBearerAuth()
-    @ApiOperation({ summary: 'List all events created by the current user (Organizer only)' })
-    @ApiResponse({ status: 200, description: 'List of events retrieved successfully' })
-    @ApiResponse({ status: 404, description: 'User not found' })
-    findMyEvents(@CurrentUser() user) {
-        return this.eventsService.findMyEvents(user.userId);
     }
 }

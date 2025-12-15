@@ -2,8 +2,9 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { DRIZZLE } from '../../infra/database/drizzle.provider';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../../infra/database/schema';
-import { eq, desc, and, lte, gte, SQL } from 'drizzle-orm';
-import { CreateEventDto, EventFilterDto, UpdateEventDto } from '../../presentation/dtos/event.dto';
+import { eq, desc, and, lte, gte, SQL, ilike } from 'drizzle-orm';
+import { CreateEventDto, UpdateEventDto } from '../../presentation/dtos/event.dto';
+import { EventFilterDto } from '../../presentation/dtos/event-filter.dto';
 
 @Injectable()
 export class EventsService {
@@ -15,15 +16,11 @@ export class EventsService {
   async create(userId: string, dto: CreateEventDto) {
     const [event] = await this.db.insert(schema.events).values({
       ...dto,
-
-      // TODO: automatizar conversão
       startDate: new Date(dto.startDate),
       endDate: new Date(dto.endDate),
       registrationStart: dto.registrationStart ? new Date(dto.registrationStart) : null,
       registrationEnd: dto.registrationEnd ? new Date(dto.registrationEnd) : null,
-
-      organizerId: userId, // Vincula quem criou
-      // status default é 'draft' se não vier no dto
+      organizerId: userId,
     }).returning();
 
     return event;
@@ -33,16 +30,15 @@ export class EventsService {
   async findAll(filters: EventFilterDto) {
     const conditions: SQL[] = [];
 
+    // Por padrão, buscar apenas eventos publicados
+    conditions.push(eq(schema.events.status, 'published'));
+
     if (filters.title) {
-      conditions.push(eq(schema.events.title, filters.title));
+      conditions.push(ilike(schema.events.title, `%${filters.title}%`));
     }
 
     if (filters.type) {
       conditions.push(eq(schema.events.type, filters.type));
-    }
-
-    if (filters.status) {
-      conditions.push(eq(schema.events.status, filters.status));
     }
 
     if (filters.startDate) {
@@ -50,16 +46,14 @@ export class EventsService {
     }
 
     if (filters.endDate) {
-      conditions.push(lte(schema.events.endDate, new Date(filters.endDate)));
+      conditions.push(lte(schema.events.startDate, new Date(filters.endDate)));
     }
 
-    // Retorna todos, ordenados por data de criação (mais novos primeiro)
     return this.db.query.events.findMany({
-      // Se houver condições, usa o AND, senão busca tudo
       where: conditions.length > 0 ? and(...conditions) : undefined,
       orderBy: [desc(schema.events.createdAt)],
       with: {
-        organizer: { // Mostrar nome do organizador no card do evento
+        organizer: {
           columns: { name: true, organizerRating: true }
         }
       }
