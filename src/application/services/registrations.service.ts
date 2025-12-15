@@ -121,6 +121,19 @@ export class RegistrationsService {
     });
   }
 
+  async findParticipantsByEvent(eventId: string) {
+    const registrations = await this.db.query.registrations.findMany({
+      where: eq(schema.registrations.eventId, eventId),
+      with: {
+        user: {
+          columns: { id: true, name: true, email: true, photoUrl: true }
+        }
+      }
+    });
+    // Filter active participants only
+    return registrations.filter(r => r.status && ['approved', 'checked_in', 'confirmed'].includes(r.status));
+  }
+
   async findMyRegistrations(userId: string) {
     return this.db.query.registrations.findMany({
       where: eq(schema.registrations.userId, userId),

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { SocialService } from '../../application/services/social.service';
 import { JwtAuthGuard } from '../../infra/auth/jwt-auth.guard';
@@ -9,7 +9,9 @@ import { CurrentUser } from '../../infra/auth/current-user.decorator';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class SocialController {
-    constructor(private readonly socialService: SocialService) { }
+    constructor(private readonly socialService: SocialService) {
+        console.log('SocialController initialized');
+    }
 
     @Post('friend-request/:targetUserId')
     @ApiOperation({ summary: 'Enviar pedido de amizade (Exige evento em comum)' })
@@ -38,6 +40,18 @@ export class SocialController {
     @ApiOperation({ summary: 'Listar pedidos de amizade recebidos' })
     getPending(@CurrentUser() user: any) {
         return this.socialService.getPendingRequests(user.userId);
+    }
+
+    @Get('requests/sent')
+    @ApiOperation({ summary: 'Listar pedidos de amizade enviados' })
+    getSent(@CurrentUser() user: any) {
+        return this.socialService.getSentRequests(user.userId);
+    }
+
+    @Delete('friendships/:friendId')
+    @ApiOperation({ summary: 'Remover amizade ou cancelar pedido' })
+    removeFriend(@Param('friendId') friendId: string, @CurrentUser() user: any) {
+        return this.socialService.removeFriendship(user.userId, friendId);
     }
 
     @Post('messages/:friendId')

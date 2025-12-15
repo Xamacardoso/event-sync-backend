@@ -108,6 +108,34 @@ export class SocialService {
         });
     }
 
+    // 4.1. Listar Pedidos Enviados
+    async getSentRequests(userId: string) {
+        return this.db.query.friendships.findMany({
+            where: and(
+                eq(schema.friendships.requesterId, userId),
+                eq(schema.friendships.status, 'pending')
+            ),
+            with: {
+                recipient: {
+                    columns: { id: true, name: true, photoUrl: true, city: true }
+                }
+            }
+        });
+    }
+
+    // 4.2. Remover Amizade ou Cancelar Pedido
+    async removeFriendship(userId: string, friendId: string) {
+        // Apaga se for requester OU recipient
+        const result = await this.db.delete(schema.friendships)
+            .where(or(
+                and(eq(schema.friendships.requesterId, userId), eq(schema.friendships.recipientId, friendId)),
+                and(eq(schema.friendships.requesterId, friendId), eq(schema.friendships.recipientId, userId))
+            )).returning();
+
+        if (result.length === 0) throw new NotFoundException('Amizade ou pedido não encontrado');
+        return { message: 'Removido com sucesso' };
+    }
+
     // 5. Enviar Mensagem
     async sendMessage(senderId: string, recipientId: string, content: string) {
         // Verificar se são amigos

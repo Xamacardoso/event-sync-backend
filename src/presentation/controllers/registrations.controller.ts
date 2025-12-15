@@ -9,7 +9,7 @@ import { CheckInDto } from '../dtos/checkin.dto';
 @ApiTags('Registrations')
 @Controller()
 export class RegistrationsController {
-  constructor(private readonly registrationsService: RegistrationsService) {}
+  constructor(private readonly registrationsService: RegistrationsService) { }
 
   @Post('events/:id/register')
   @UseGuards(JwtAuthGuard)
@@ -35,22 +35,30 @@ export class RegistrationsController {
     return this.registrationsService.findAllByEvent(user.userId, eventId);
   }
 
+  @Get('events/:id/participants')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List public participants for an event' })
+  listParticipants(@Param('id') eventId: string) {
+    return this.registrationsService.findParticipantsByEvent(eventId);
+  }
+
   @Get('registrations/me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all registrations for the current user (Participant only)' })
   listMyRegistrations(@CurrentUser() user: any) {
     return this.registrationsService.findMyRegistrations(user.userId);
-  } 
+  }
 
   @Patch('registrations/:id/status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Approve or Reject a registration (Organizer only)' })
   updateStatus(
-      @Param('id') registrationId: string, 
-      @CurrentUser() user: any,
-      @Body() dto: UpdateRegistrationStatusDto
+    @Param('id') registrationId: string,
+    @CurrentUser() user: any,
+    @Body() dto: UpdateRegistrationStatusDto
   ) {
     return this.registrationsService.updateStatus(user.userId, registrationId, dto.status as any);
   }
