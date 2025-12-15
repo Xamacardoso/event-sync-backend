@@ -100,7 +100,11 @@ export class SocialService {
                 eq(schema.friendships.recipientId, userId),
                 eq(schema.friendships.status, 'pending')
             ),
-            // Aqui idealmente usaríamos 'with' se as relations estivessem configuradas para trazer o nome
+            with: {
+                requester: {
+                    columns: { id: true, name: true, photoUrl: true, city: true }
+                }
+            }
         });
     }
 
@@ -136,7 +140,40 @@ export class SocialService {
                 and(eq(schema.messages.senderId, userId), eq(schema.messages.recipientId, friendId)),
                 and(eq(schema.messages.senderId, friendId), eq(schema.messages.recipientId, userId))
             ),
-            orderBy: [schema.messages.timestamp] // Ordenar por data
+            orderBy: (messages, { asc }) => [asc(messages.timestamp)], // Ordenar por data
+            with: {
+                sender: {
+                    columns: { id: true, name: true }
+                }
+            }
+        });
+    }
+
+    // 7. Enviar Mensagem no Evento
+    async sendMessageToEvent(senderId: string, eventId: string, content: string) {
+        // Verificar se participante está inscrito e aprovado
+        // (Opcional, mas recomendado)
+
+        const [msg] = await this.db.insert(schema.messages).values({
+            senderId,
+            eventId,
+            content,
+            type: 'text',
+        }).returning();
+
+        return msg;
+    }
+
+    // 8. Ler Mensagens do Evento
+    async getEventMessages(eventId: string) {
+        return this.db.query.messages.findMany({
+            where: eq(schema.messages.eventId, eventId),
+            orderBy: (messages, { asc }) => [asc(messages.timestamp)],
+            with: {
+                sender: {
+                    columns: { id: true, name: true, photoUrl: true }
+                }
+            }
         });
     }
 }

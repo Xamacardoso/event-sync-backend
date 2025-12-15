@@ -16,7 +16,8 @@ export const friendships = pgTable('friendships', {
 export const messages = pgTable('messages', {
   id: uuid('id').defaultRandom().primaryKey(),
   senderId: uuid('sender_id').references(() => users.id).notNull(),
-  recipientId: uuid('recipient_id').references(() => users.id).notNull(),
+  recipientId: uuid('recipient_id').references(() => users.id), // Nullable for Event Chat
+  eventId: uuid('event_id').references(() => events.id),       // Nullable for Direct Message
   type: text('type').default('text'),
   content: text('content').notNull(),
   attachmentUrl: text('attachment_url'),

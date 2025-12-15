@@ -36,3 +36,26 @@ export const checkinsRelations = relations(checkins, ({ one }) => ({
     references: [registrations.id],
   }),
 }));
+
+// Relacionamentos para Mensagens
+import { messages, friendships } from "./social_feedback";
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  sender: one(users, {
+    fields: [messages.senderId],
+    references: [users.id],
+  }),
+}));
+
+export const friendshipsRelations = relations(friendships, ({ one }) => ({
+  requester: one(users, {
+    fields: [friendships.requesterId],
+    references: [users.id],
+    relationName: 'requester',
+  }),
+  recipient: one(users, {
+    fields: [friendships.recipientId],
+    references: [users.id],
+    relationName: 'recipient',
+  }),
+}));

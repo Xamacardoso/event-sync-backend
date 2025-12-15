@@ -6,6 +6,7 @@ import { EventsModule } from './infra/events/events.module';
 import { RegistrationsModule } from './infra/registrations/registration.module';
 import { UsersModule } from './infra/users/users.module';
 import { SocialModule } from './infra/social/social.module';
+import { DashboardModule } from './infra/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -17,7 +18,9 @@ import { SocialModule } from './infra/social/social.module';
     EventsModule,
     RegistrationsModule,
     UsersModule,
+    UsersModule,
     SocialModule,
+    DashboardModule,
   ],
   controllers: [],
   providers: [],

@@ -56,4 +56,21 @@ export class SocialController {
     getMessages(@Param('friendId') friendId: string, @CurrentUser() user: any) {
         return this.socialService.getMessages(user.userId, friendId);
     }
+
+    @Get('events/:id/chat')
+    @ApiOperation({ summary: 'Ver chat do evento' })
+    getEventChat(@Param('id') eventId: string) {
+        return this.socialService.getEventMessages(eventId);
+    }
+
+    @Post('events/:id/chat')
+    @ApiOperation({ summary: 'Enviar mensagem no chat do evento' })
+    @ApiBody({ schema: { type: 'object', properties: { content: { type: 'string' } } } })
+    sendEventMessage(
+        @Param('id') eventId: string,
+        @Body('content') content: string,
+        @CurrentUser() user: any
+    ) {
+        return this.socialService.sendMessageToEvent(user.userId, eventId, content);
+    }
 }
