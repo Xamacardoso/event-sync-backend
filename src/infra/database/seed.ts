@@ -147,6 +147,7 @@ async function seed() {
 
         // Inscrição no Evento Finalizado (para testar Review)
         { userId: bob.id, eventId: finishedEvent.id, status: 'checked_in' },
+        { userId: charlie.id, eventId: finishedEvent.id, status: 'checked_in' },
     ]);
 
     console.log('✅ Registrations created');

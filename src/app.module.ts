@@ -7,6 +7,7 @@ import { RegistrationsModule } from './infra/registrations/registration.module';
 import { UsersModule } from './infra/users/users.module';
 import { SocialModule } from './infra/social/social.module';
 import { DashboardModule } from './infra/dashboard/dashboard.module';
+import { ReviewsModule } from './infra/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { DashboardModule } from './infra/dashboard/dashboard.module';
     UsersModule,
     SocialModule,
     DashboardModule,
+    ReviewsModule,
   ],
   controllers: [],
   providers: [],
