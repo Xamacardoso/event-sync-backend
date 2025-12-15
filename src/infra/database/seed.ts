@@ -107,6 +107,17 @@ async function seed() {
             requiresApproval: true,
             status: 'published',
             localAddress: 'Clube Privado',
+        },
+        {
+            organizerId: alice.id,
+            title: 'Evento Passado (Finished)',
+            description: 'Evento que já ocorreu. Bom para testar avaliações.',
+            startDate: new Date('2023-01-01T10:00:00Z'),
+            endDate: new Date('2023-01-01T18:00:00Z'),
+            price: 50,
+            type: 'paid',
+            status: 'finished',
+            localAddress: 'Centro Histórico',
         }
     ];
 
@@ -115,7 +126,7 @@ async function seed() {
         const [evt] = await db.insert(schema.events).values(e as any).returning();
         events.push(evt);
     }
-    const [originalEvent, techSummit, reactWorkshop, draftEvent, restrictedEvent] = events;
+    const [originalEvent, techSummit, reactWorkshop, draftEvent, restrictedEvent, finishedEvent] = events;
 
     console.log('✅ Events created');
 
@@ -133,6 +144,9 @@ async function seed() {
         // Inscrições no Evento com Aprovação
         { userId: david.id, eventId: restrictedEvent.id, status: 'pending' },
         { userId: eve.id, eventId: restrictedEvent.id, status: 'approved' },
+
+        // Inscrição no Evento Finalizado (para testar Review)
+        { userId: bob.id, eventId: finishedEvent.id, status: 'checked_in' },
     ]);
 
     console.log('✅ Registrations created');

@@ -70,6 +70,11 @@ export class EventsService {
   async findOne(id: string) {
     const event = await this.db.query.events.findFirst({
       where: eq(schema.events.id, id),
+      with: {
+        organizer: {
+          columns: { id: true, name: true, photoUrl: true, organizerRating: true }
+        }
+      }
     });
 
     if (!event) {
