@@ -35,10 +35,19 @@ export class RegistrationsService {
         eq(schema.registrations.userId, userId)
       ),
     });
-    if (existing) throw new ConflictException('Already registered');
-
     // Define status inicial: Se requer aprovação -> pending, senão -> approved
     const status = event.requiresApproval ? 'pending' : 'approved';
+
+    if (existing) {
+      if (existing.status === 'canceled') {
+        const [updated] = await this.db.update(schema.registrations)
+          .set({ status, registrationDate: new Date() })
+          .where(eq(schema.registrations.id, existing.id))
+          .returning();
+        return { message: 'Registration reactivated', registration: updated };
+      }
+      throw new ConflictException('Already registered');
+    }
 
     const [registration] = await this.db.insert(schema.registrations).values({
       userId,
