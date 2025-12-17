@@ -13,6 +13,12 @@ async function seed() {
     const client = postgres(connectionString);
     const db = drizzle(client, { schema });
 
+    const existingUser = await db.query.users.findFirst();
+    if (existingUser) {
+        console.log('⚠️  Database already initialized. Skipping seed.');
+        process.exit(0);
+    }
+
     console.log('🧹 Cleaning database...');
     await db.delete(schema.messages);
     await db.delete(schema.reviews);       // Added
