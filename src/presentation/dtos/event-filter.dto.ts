@@ -7,6 +7,8 @@ const eventFilterSchema = z.object({
     status: z.enum(['draft', 'published', 'canceled', 'finished']).optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
+    page: z.string().transform(Number).optional().default(1),
+    limit: z.string().transform(Number).optional().default(10),
 });
 
 export class EventFilterDto extends createZodDto(eventFilterSchema) { }

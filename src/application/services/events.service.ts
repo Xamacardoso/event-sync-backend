@@ -55,15 +55,43 @@ export class EventsService {
       conditions.push(lte(schema.events.startDate, new Date(filters.endDate)));
     }
 
-    return this.db.query.events.findMany({
-      where: conditions.length > 0 ? and(...conditions) : undefined,
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const offset = (page - 1) * limit;
+
+    // Build the where clause conditions
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Query for total count (needed for pagination metadata)
+    // We select id only for efficiency when counting
+    const allMatchingEvents = await this.db.select({ id: schema.events.id })
+      .from(schema.events)
+      .where(whereClause);
+
+    const total = allMatchingEvents.length;
+    const lastPage = Math.ceil(total / limit);
+
+    const data = await this.db.query.events.findMany({
+      where: whereClause,
       orderBy: [desc(schema.events.createdAt)],
+      limit: limit,
+      offset: offset,
       with: {
         organizer: {
           columns: { name: true, organizerRating: true }
         }
       }
     });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        lastPage,
+        limit
+      }
+    };
   }
 
   // Buscar um Evento por ID
