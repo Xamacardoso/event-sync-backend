@@ -251,8 +251,44 @@ export class RegistrationsService {
     });
 
     return {
-      message: 'Check-in made successfully',
-      participant: registration.userId // Retorna ID para o front mostrar quem entrou
+    };
+  }
+
+  // Obter dados do certificado
+  async getCertificateData(userId: string, registrationId: string) {
+    const registration = await this.db.query.registrations.findFirst({
+      where: and(
+        eq(schema.registrations.id, registrationId),
+        eq(schema.registrations.userId, userId)
+      ),
+      with: {
+        event: true,
+        user: true,
+      }
+    });
+
+    if (!registration) {
+      throw new NotFoundException('Registration not found.');
+    }
+
+    // Validação: Status deve ser 'checked_in'
+    if (registration.status !== 'checked_in') {
+      throw new BadRequestException('Certificate available only for checked-in participants.');
+    }
+
+    // Validação: Evento deve ter terminado
+    const now = new Date();
+    if (registration.event.endDate > now) {
+      throw new BadRequestException('Certificate is available only after the event ends.');
+    }
+
+    // Retorna JSON para geração do certificado
+    return {
+      participantName: registration.user.name,
+      eventName: registration.event.title,
+      workloadHours: registration.event.workloadHours || 0,
+      date: registration.event.startDate, // Data do evento (inicio)
+      validationCode: registration.id, // UUID da inscrição para validação
     };
   }
 }

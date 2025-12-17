@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { DRIZZLE } from '../../infra/database/drizzle.provider';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../../infra/database/schema';
@@ -29,17 +29,26 @@ export class ReviewsService {
             )
         });
 
-        if (!registration) throw new ForbiddenException('Você precisa ter participado e feito check-in para avaliar.');
+        if (!registration) {
+            throw new ForbiddenException('Você precisa ter participado do evento (checked_in) para avaliar.');
+        }
+
+        if (registration.status !== 'checked_in') {
+            // Double check status just in case
+            throw new ForbiddenException('Apenas participantes presentes podem avaliar.');
+        }
 
         // 3. Verificar se já avaliou
-        const existingReview = await this.db.query.reviews.findFirst({
+        const existing = await this.db.query.reviews.findFirst({
             where: and(
-                eq(schema.reviews.eventId, dto.eventId),
-                eq(schema.reviews.userId, userId)
+                eq(schema.reviews.userId, userId),
+                eq(schema.reviews.eventId, dto.eventId)
             )
         });
 
-        if (existingReview) throw new BadRequestException('Você já avaliou este evento.');
+        if (existing) {
+            throw new ConflictException('Você já avaliou este evento.');
+        }
 
         // 4. Criar Avaliação
         const [review] = await this.db.insert(schema.reviews).values({
@@ -53,6 +62,15 @@ export class ReviewsService {
         await this.updateOrganizerRating(event.organizerId);
 
         return review;
+    }
+
+    async findOneByUserAndEvent(userId: string, eventId: string) {
+        return this.db.query.reviews.findFirst({
+            where: and(
+                eq(schema.reviews.userId, userId),
+                eq(schema.reviews.eventId, eventId)
+            )
+        });
     }
 
     private async updateOrganizerRating(organizerId: string) {

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { ReviewsService } from '../../application/services/reviews.service';
 import { JwtAuthGuard } from '../../infra/auth/jwt-auth.guard';
@@ -17,5 +17,11 @@ export class ReviewsController {
     @ApiBody({ type: CreateReviewDto })
     create(@Body() dto: CreateReviewDto, @CurrentUser() user: any) {
         return this.reviewsService.create(user.userId, dto);
+    }
+
+    @Get('event/:eventId/me')
+    @ApiOperation({ summary: 'Obter minha avaliação para um evento' })
+    async getMyReview(@Param('eventId') eventId: string, @CurrentUser() user: any) {
+        return this.reviewsService.findOneByUserAndEvent(user.userId, eventId);
     }
 }

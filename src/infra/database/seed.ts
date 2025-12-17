@@ -118,6 +118,43 @@ async function seed() {
             type: 'paid',
             status: 'finished',
             localAddress: 'Centro Histórico',
+            workloadHours: 8,
+        },
+        {
+            organizerId: alice.id,
+            title: 'JS Conference 2023',
+            description: 'A maior conferência de JS.',
+            startDate: new Date('2023-05-20T09:00:00Z'),
+            endDate: new Date('2023-05-21T18:00:00Z'),
+            price: 150,
+            type: 'paid',
+            status: 'finished',
+            localAddress: 'Hotel Plaza',
+            workloadHours: 20,
+        },
+        {
+            organizerId: alice.id,
+            title: 'Node.js Workshop',
+            description: 'Workshop intensivo.',
+            startDate: new Date('2023-06-15T14:00:00Z'),
+            endDate: new Date('2023-06-15T18:00:00Z'),
+            price: 99,
+            type: 'paid',
+            status: 'finished',
+            localUrl: 'https://meet.google.com/abc-defg-hij',
+            workloadHours: 4,
+        },
+        {
+            organizerId: teste.id,
+            title: 'DevOps Bootcamp',
+            description: 'Aprenda CI/CD na prática.',
+            startDate: new Date('2023-08-10T08:00:00Z'),
+            endDate: new Date('2023-08-12T18:00:00Z'),
+            price: 500,
+            type: 'paid',
+            status: 'finished',
+            localAddress: 'Lab de Informática',
+            workloadHours: 32,
         }
     ];
 
@@ -161,20 +198,37 @@ async function seed() {
     console.log('✅ Friendships created');
 
     // 5. Send Messages
-    // Direct Message (Bob -> Charlie)
-    await db.insert(schema.messages).values({
+    // Direct Message (Bob -> Charlie) - Conversa longa
+    const messagesData: any[] = [];
+
+    // Inicia conversa
+    messagesData.push({
         senderId: bob.id,
         recipientId: charlie.id,
         content: 'Hey Charlie, vai no Tech Summit?',
+        timestamp: new Date('2025-10-01T10:00:00Z'),
     });
 
+    // Gera 50 mensagens de "spam" / conversa
+    for (let i = 0; i < 50; i++) {
+        const isBob = i % 2 === 0;
+        messagesData.push({
+            senderId: isBob ? bob.id : charlie.id,
+            recipientId: isBob ? charlie.id : bob.id,
+            content: `Mensagem de teste ${i + 1} - ${isBob ? 'Bob falando...' : 'Charlie respondendo...'} bla bla bla`,
+            timestamp: new Date(Date.now() - 1000 * 60 * (50 - i)), // Mensagens recentes
+        });
+    }
+
     // Event Chat Message (Bob -> Tech Summit)
-    // Note: This matches the schema update I made (eventId and nullable recipientId)
-    await db.insert(schema.messages).values({
+    messagesData.push({
         senderId: bob.id,
         eventId: techSummit.id,
         content: 'Alguém sabe onde é o credenciamento?',
+        timestamp: new Date(),
     });
+
+    await db.insert(schema.messages).values(messagesData as any);
 
     console.log('✅ Messages created');
     console.log('🎉 Seeding completed!');

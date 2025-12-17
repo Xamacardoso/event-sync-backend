@@ -85,4 +85,14 @@ export class RegistrationsController {
     // O user.userId é quem está bipando (o organizador)
     return this.registrationsService.checkIn(user.userId, registrationId, dto.method);
   }
+
+  @Get('registrations/:id/certificate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Certificate Data (Participant only, after event)' })
+  @ApiResponse({ status: 200, description: 'Certificate data retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Not checked in or event not ended' })
+  getCertificate(@Param('id') registrationId: string, @CurrentUser() user: any) {
+    return this.registrationsService.getCertificateData(user.userId, registrationId);
+  }
 }
